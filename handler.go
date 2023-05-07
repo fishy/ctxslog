@@ -10,9 +10,13 @@ type logKeyType struct{}
 
 var logKey logKeyType
 
-// Attaches l into context.
-func Attach(ctx context.Context, l *slog.Logger) context.Context {
-	return context.WithValue(ctx, logKey, l)
+// Attaches logger args into context.
+func Attach(ctx context.Context, args ...any) context.Context {
+	logger := slog.Default()
+	if l, ok := ctx.Value(logKey).(*slog.Logger); ok {
+		logger = l
+	}
+	return context.WithValue(ctx, logKey, logger.With(args...))
 }
 
 type ctxHandler struct {
