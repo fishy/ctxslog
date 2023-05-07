@@ -30,6 +30,10 @@ func (ch ctxHandler) Handle(ctx context.Context, r slog.Record) error {
 	return ch.Handler.Handle(ctx, r)
 }
 
+func (ch ctxHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &ctxHandler{ch.Handler.WithAttrs(attrs)}
+}
+
 // ContextHandler wraps handler to handle contexts from Attach.
 func ContextHandler(h slog.Handler) slog.Handler {
 	return &ctxHandler{h}
