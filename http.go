@@ -10,7 +10,8 @@ import (
 
 // RemoteAddrIP returns the ip parsed from r.RemoteAddr.
 func RemoteAddrIP(r *http.Request) netip.Addr {
-	if parsed, err := netip.ParseAddrPort(r.RemoteAddr); err != nil {
+	parsed, err := netip.ParseAddrPort(r.RemoteAddr)
+	if err != nil {
 		slog.DebugCtx(
 			r.Context(),
 			"ctxslog.RemoteAddrIP: Cannot parse RemoteAddr",
@@ -18,9 +19,8 @@ func RemoteAddrIP(r *http.Request) netip.Addr {
 			"remoteAddr", r.RemoteAddr,
 		)
 		return netip.Addr{}
-	} else {
-		return parsed.Addr()
 	}
+	return parsed.Addr()
 }
 
 // GCPRealIP gets the real IP form an GCP request (cloud run or app engine).
