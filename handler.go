@@ -2,6 +2,7 @@ package ctxslog
 
 import (
 	"context"
+	"runtime"
 
 	"golang.org/x/exp/slog"
 )
@@ -43,4 +44,75 @@ func ContextHandler(h slog.Handler) slog.Handler {
 		return h
 	}
 	return &ctxHandler{h}
+}
+
+type callstackHandler struct {
+	slog.Handler
+
+	level slog.Leveler
+}
+
+func (ch *callstackHandler) WithAttr(attrs []slog.Attr) slog.Handler {
+	return &callstackHandler{
+		Handler: ch.Handler.WithAttrs(attrs),
+
+		level: ch.level,
+	}
+}
+
+func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
+	if !ch.Enabled(ctx, r.Level) {
+		return nil
+	}
+	if r.Level >= ch.level.Level() && r.PC != 0 {
+		var pcs []uintptr
+		max := 20
+		for {
+			pcs = make([]uintptr, max)
+			n := runtime.Callers(0, pcs)
+			if n < max {
+				pcs = pcs[:n]
+				break
+			}
+			max = max * 2
+		}
+		for i, pc := range pcs {
+			if pc == r.PC {
+				pcs = pcs[i:]
+				break
+			}
+		}
+
+		fs := runtime.CallersFrames(pcs)
+		var stack []*slog.Source
+		for {
+			f, next := fs.Next()
+			stack = append(stack, &slog.Source{
+				Function: f.Function,
+				File:     f.File,
+				Line:     f.Line,
+			})
+			if !next {
+				break
+			}
+		}
+
+		r = r.Clone()
+		r.AddAttrs(slog.Any("callstack", stack))
+	}
+	return ch.Handler.Handle(ctx, r)
+}
+
+// CallstackHandler wraps handler to print out full callstack at minimal level.
+func CallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
+	if ch, ok := h.(*callstackHandler); ok {
+		// avoid double wrapping
+		ch.level = min
+		return ch
+	}
+	return &callstackHandler{
+		Handler: h,
+
+		level: min,
+	}
 }
