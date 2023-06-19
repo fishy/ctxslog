@@ -43,7 +43,7 @@ func TestJSONCallstackHandler(t *testing.T) {
 			AddSource: true,
 			Level:     slog.LevelDebug,
 		}), slog.LevelInfo,
-	))
+	)).With("foo", "bar")
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
 	}
@@ -98,7 +98,7 @@ func TestTextCallstackHandler(t *testing.T) {
 			AddSource: true,
 			Level:     slog.LevelDebug,
 		}), slog.LevelInfo,
-	))
+	)).With("foo", "bar")
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
 	}

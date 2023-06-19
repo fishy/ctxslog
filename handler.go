@@ -54,7 +54,7 @@ type callstackHandler struct {
 	json  bool
 }
 
-func (ch *callstackHandler) WithAttr(attrs []slog.Attr) slog.Handler {
+func (ch *callstackHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &callstackHandler{
 		Handler: ch.Handler.WithAttrs(attrs),
 
