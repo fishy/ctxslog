@@ -17,14 +17,17 @@ func ChainReplaceAttr(fs ...ReplaceAttrFunc) ReplaceAttrFunc {
 }
 
 // GCPKeys is a ReplaceAttrFunc that replaces certain keys from Attr to meet
-// Google Cloud Platform logging's expectations.
+// Google Cloud Structured logging's expectations.
 func GCPKeys(groups []string, a slog.Attr) slog.Attr {
 	if len(groups) == 0 {
+		// ref: https://cloud.google.com/logging/docs/structured-logging
 		switch a.Key {
 		case slog.MessageKey:
 			a.Key = "message"
 		case slog.LevelKey:
 			a.Key = "severity"
+		case slog.SourceKey:
+			a.Key = "logging.googleapis.com/sourceLocation"
 		}
 	}
 	return a

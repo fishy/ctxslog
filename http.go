@@ -61,11 +61,12 @@ func HTTPRequest(r *http.Request, ip func(*http.Request) netip.Addr) slog.Value 
 		ip = RemoteAddrIP
 	}
 	return slog.GroupValue(
-		slog.String("method", r.Method),
+		// ref: https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#HttpRequest
+		slog.String("requestMethod", r.Method),
+		slog.String("requestUrl", r.URL.String()),
 		slog.String("userAgent", r.UserAgent()),
-		slog.String("ip", ip(r).String()),
+		slog.String("remoteIp", ip(r).String()),
 		slog.String("referer", r.Referer()),
 		slog.String("protocol", r.Proto),
-		slog.String("requestUrl", r.URL.String()),
 	)
 }
