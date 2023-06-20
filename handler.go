@@ -22,7 +22,7 @@ func Attach(ctx context.Context, args ...any) context.Context {
 }
 
 type ctxHandler struct {
-	slog.Handler
+	h slog.Handler
 }
 
 func (ch ctxHandler) Handle(ctx context.Context, r slog.Record) error {
@@ -31,11 +31,19 @@ func (ch ctxHandler) Handle(ctx context.Context, r slog.Record) error {
 		ctx := context.WithValue(ctx, logKey, (*slog.Logger)(nil))
 		return l.Handler().Handle(ctx, r)
 	}
-	return ch.Handler.Handle(ctx, r)
+	return ch.h.Handle(ctx, r)
+}
+
+func (ch ctxHandler) Enabled(ctx context.Context, l slog.Level) bool {
+	return ch.h.Enabled(ctx, l)
 }
 
 func (ch ctxHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &ctxHandler{ch.Handler.WithAttrs(attrs)}
+	return &ctxHandler{h: ch.h.WithAttrs(attrs)}
+}
+
+func (ch ctxHandler) WithGroup(name string) slog.Handler {
+	return &ctxHandler{h: ch.h.WithGroup(name)}
 }
 
 // ContextHandler wraps handler to handle contexts from Attach.
@@ -44,19 +52,32 @@ func ContextHandler(h slog.Handler) slog.Handler {
 		// avoid double wrapping
 		return h
 	}
-	return &ctxHandler{h}
+	return &ctxHandler{h: h}
 }
 
 type callstackHandler struct {
-	slog.Handler
+	h slog.Handler
 
 	level slog.Leveler
 	json  bool
 }
 
+func (ch *callstackHandler) Enabled(ctx context.Context, l slog.Level) bool {
+	return ch.h.Enabled(ctx, l)
+}
+
 func (ch *callstackHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &callstackHandler{
-		Handler: ch.Handler.WithAttrs(attrs),
+		h: ch.h.WithAttrs(attrs),
+
+		level: ch.level,
+		json:  ch.json,
+	}
+}
+
+func (ch *callstackHandler) WithGroup(name string) slog.Handler {
+	return &callstackHandler{
+		h: ch.h.WithGroup(name),
 
 		level: ch.level,
 		json:  ch.json,
@@ -64,9 +85,6 @@ func (ch *callstackHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 }
 
 func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
-	if !ch.Enabled(ctx, r.Level) {
-		return nil
-	}
 	if r.Level >= ch.level.Level() && r.PC != 0 {
 		var pcs []uintptr
 		max := 20
@@ -93,7 +111,7 @@ func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
 			r.AddAttrs(slog.Any("callstack", callstack(pcs, ch.json)))
 		}
 	}
-	return ch.Handler.Handle(ctx, r)
+	return ch.h.Handle(ctx, r)
 }
 
 func callstack(pcs []uintptr, json bool) []any {
@@ -127,7 +145,7 @@ func JSONCallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
 		return ch
 	}
 	return &callstackHandler{
-		Handler: h,
+		h: h,
 
 		level: min,
 		json:  true,
@@ -144,7 +162,7 @@ func TextCallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
 		return ch
 	}
 	return &callstackHandler{
-		Handler: h,
+		h: h,
 
 		level: min,
 		json:  false,
