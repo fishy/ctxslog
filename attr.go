@@ -4,6 +4,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+// Type alias for slog.HandlerOptions.ReplaceAttr.
 type ReplaceAttrFunc = func(groups []string, a slog.Attr) slog.Attr
 
 // ChainReplaceAttr chains multiple ReplaceAttrFunc together.

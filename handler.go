@@ -93,7 +93,7 @@ func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
 				pcs = pcs[:n]
 				break
 			}
-			max = max * 2
+			max += max
 		}
 		// Skip everything before r.PC if possible.
 		// Those are mostly just internal slog related wrappers.

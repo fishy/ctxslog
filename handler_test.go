@@ -20,8 +20,7 @@ func TestContextHandler(t *testing.T) {
 	})
 
 	var sb strings.Builder
-	base := slog.New(ctxslog.ContextHandler(slog.NewJSONHandler(&sb, nil)))
-	slog.SetDefault(base)
+	ctxslog.New(ctxslog.WithWriter(&sb))
 	ctx := ctxslog.Attach(context.Background(), slog.String("foo", "bar"))
 	slog.InfoCtx(ctx, "test")
 	line := sb.String()
@@ -38,13 +37,14 @@ func TestContextHandler(t *testing.T) {
 func TestJSONCallstackHandler(t *testing.T) {
 	const min = slog.LevelInfo + 1
 	var buf bytes.Buffer
-	logger := slog.New(ctxslog.CallstackHandler(slog.NewJSONHandler(
-		&buf,
-		&slog.HandlerOptions{
-			AddSource: true,
-			Level:     slog.LevelDebug,
-		}), min,
-	)).With("foo", "bar")
+	logger := ctxslog.New(
+		ctxslog.WithWriter(&buf),
+		ctxslog.WithJSON,
+		ctxslog.WithAddSource(true),
+		ctxslog.WithLevel(slog.LevelDebug),
+		ctxslog.WithCallstack(min),
+		ctxslog.WithGlobalKVs("foo", "bar"),
+	)
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
 	}
@@ -91,13 +91,14 @@ func TestTextCallstackHandler(t *testing.T) {
 	}
 
 	var sb strings.Builder
-	logger := slog.New(ctxslog.CallstackHandler(slog.NewTextHandler(
-		&sb,
-		&slog.HandlerOptions{
-			AddSource: true,
-			Level:     slog.LevelDebug,
-		}), min,
-	)).With("foo", "bar")
+	logger := ctxslog.New(
+		ctxslog.WithWriter(&sb),
+		ctxslog.WithText,
+		ctxslog.WithAddSource(true),
+		ctxslog.WithLevel(slog.LevelDebug),
+		ctxslog.WithCallstack(min),
+		ctxslog.WithGlobalKVs("foo", "bar"),
+	)
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
 	}
