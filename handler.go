@@ -2,6 +2,7 @@ package ctxslog
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 
@@ -59,7 +60,6 @@ type callstackHandler struct {
 	h slog.Handler
 
 	level slog.Leveler
-	json  bool
 }
 
 func (ch *callstackHandler) Enabled(ctx context.Context, l slog.Level) bool {
@@ -71,7 +71,6 @@ func (ch *callstackHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		h: ch.h.WithAttrs(attrs),
 
 		level: ch.level,
-		json:  ch.json,
 	}
 }
 
@@ -80,7 +79,6 @@ func (ch *callstackHandler) WithGroup(name string) slog.Handler {
 		h: ch.h.WithGroup(name),
 
 		level: ch.level,
-		json:  ch.json,
 	}
 }
 
@@ -108,26 +106,32 @@ func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
 
 		if len(pcs) > 0 {
 			r = r.Clone()
-			r.AddAttrs(slog.Any("callstack", callstack(pcs, ch.json)))
+			r.AddAttrs(slog.Any("callstack", callstack(pcs)))
 		}
 	}
 	return ch.h.Handle(ctx, r)
 }
 
-func callstack(pcs []uintptr, json bool) []any {
+type wrapSource slog.Source
+
+func (ws *wrapSource) MarshalJSON() ([]byte, error) {
+	return json.Marshal((*slog.Source)(ws))
+}
+
+func (ws *wrapSource) String() string {
+	return fmt.Sprintf("%s:%d", ws.File, ws.Line)
+}
+
+func callstack(pcs []uintptr) []*wrapSource {
 	fs := runtime.CallersFrames(pcs)
-	stack := make([]any, 0, len(pcs))
+	stack := make([]*wrapSource, 0, len(pcs))
 	for {
 		f, next := fs.Next()
-		if json {
-			stack = append(stack, &slog.Source{
-				Function: f.Function,
-				File:     f.File,
-				Line:     f.Line,
-			})
-		} else {
-			stack = append(stack, fmt.Sprintf("%s:%d", f.File, f.Line))
-		}
+		stack = append(stack, &wrapSource{
+			Function: f.Function,
+			File:     f.File,
+			Line:     f.Line,
+		})
 		if !next {
 			break
 		}
@@ -135,36 +139,16 @@ func callstack(pcs []uintptr, json bool) []any {
 	return stack
 }
 
-// JSONCallstackHandler wraps handler to print out full callstack at minimal
-// level in full json format (function+filename+line).
-func JSONCallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
+// CallstackHandler wraps handler to print out full callstack at minimal level.
+func CallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
 	if ch, ok := h.(*callstackHandler); ok {
 		// avoid double wrapping
 		ch.level = min
-		ch.json = true
 		return ch
 	}
 	return &callstackHandler{
 		h: h,
 
 		level: min,
-		json:  true,
-	}
-}
-
-// TextCallstackHandler wraps handler to print out full callstack at minimal
-// level in simple text format (filename:line).
-func TextCallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
-	if ch, ok := h.(*callstackHandler); ok {
-		// avoid double wrapping
-		ch.level = min
-		ch.json = false
-		return ch
-	}
-	return &callstackHandler{
-		h: h,
-
-		level: min,
-		json:  false,
 	}
 }

@@ -36,13 +36,14 @@ func TestContextHandler(t *testing.T) {
 }
 
 func TestJSONCallstackHandler(t *testing.T) {
+	const min = slog.LevelInfo + 1
 	var buf bytes.Buffer
-	logger := slog.New(ctxslog.JSONCallstackHandler(slog.NewJSONHandler(
+	logger := slog.New(ctxslog.CallstackHandler(slog.NewJSONHandler(
 		&buf,
 		&slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
-		}), slog.LevelInfo,
+		}), min,
 	)).With("foo", "bar")
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
@@ -52,37 +53,34 @@ func TestJSONCallstackHandler(t *testing.T) {
 		Callstack []slog.Source `json:"callstack"`
 	}
 
-	t.Run(slog.LevelDebug.String(), func(t *testing.T) {
-		buf.Reset()
-		l(slog.LevelDebug)
-		var line lineJSON
-		if err := json.Unmarshal(buf.Bytes(), &line); err != nil {
-			t.Fatal(err)
-		}
-		if len(line.Callstack) > 0 {
-			t.Errorf("Don't expect callstack, got %#v", line.Callstack)
-		}
-	})
-
-	for _, level := range []slog.Level{slog.LevelInfo, slog.LevelWarn, slog.LevelError} {
+	for level := slog.LevelDebug; level <= slog.LevelError; level++ {
 		t.Run(level.String(), func(t *testing.T) {
 			buf.Reset()
 			l(level)
+			t.Log(buf.String())
 			var line lineJSON
 			if err := json.Unmarshal(buf.Bytes(), &line); err != nil {
 				t.Fatal(err)
 			}
-			if len(line.Callstack) == 0 {
-				t.Fatalf("No callstack in log, fullline=%s", buf.String())
-			}
-			if line.Callstack[0] != line.Source {
-				t.Errorf("line.Callstack[0]=%#v != line.Source=%#v", line.Callstack[0], line.Source)
+			if level < min {
+				if len(line.Callstack) > 0 {
+					t.Errorf("Don't expect callstack, got %#v", line.Callstack)
+				}
+			} else {
+				if len(line.Callstack) == 0 {
+					t.Fatal("No callstack in log")
+				}
+				if line.Callstack[0] != line.Source {
+					t.Errorf("line.Callstack[0]=%#v != line.Source=%#v", line.Callstack[0], line.Source)
+				}
 			}
 		})
 	}
 }
 
 func TestTextCallstackHandler(t *testing.T) {
+	const min = slog.LevelInfo + 1
+
 	// Example:
 	// source=/path/to/ctxslog/handler_test.go:74
 	// or
@@ -91,39 +89,38 @@ func TestTextCallstackHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to compile regexp: %v", err)
 	}
+
 	var sb strings.Builder
-	logger := slog.New(ctxslog.TextCallstackHandler(slog.NewTextHandler(
+	logger := slog.New(ctxslog.CallstackHandler(slog.NewTextHandler(
 		&sb,
 		&slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelDebug,
-		}), slog.LevelInfo,
+		}), min,
 	)).With("foo", "bar")
 	l := func(l slog.Level) {
 		logger.Log(context.Background(), l, "test")
 	}
 
-	t.Run(slog.LevelDebug.String(), func(t *testing.T) {
-		sb.Reset()
-		l(slog.LevelDebug)
-		line := sb.String()
-		if strings.Contains(line, "callstack=") {
-			t.Errorf("Should not have callstack on this level: %s", line)
-		}
-	})
-
-	for _, level := range []slog.Level{slog.LevelInfo, slog.LevelWarn, slog.LevelError} {
+	for level := slog.LevelDebug; level <= slog.LevelError; level++ {
 		t.Run(level.String(), func(t *testing.T) {
 			sb.Reset()
 			l(level)
 			line := sb.String()
-			groups := re.FindStringSubmatch(line)
-			if len(groups) == 0 {
-				t.Fatalf("Didn't find source in log: %s", line)
-			}
-			callstack0 := groups[1]
-			if !strings.Contains(line, `callstack="[`+callstack0) {
-				t.Errorf("Did not find first callstack matching source (%s): %s", callstack0, line)
+			t.Log(line)
+			if level < min {
+				if strings.Contains(line, "callstack=") {
+					t.Error("Should not have callstack on this level")
+				}
+			} else {
+				groups := re.FindStringSubmatch(line)
+				if len(groups) == 0 {
+					t.Fatal("Didn't find source in log")
+				}
+				callstack0 := groups[1]
+				if !strings.Contains(line, `callstack="[`+callstack0) {
+					t.Errorf("Did not find first callstack matching source: %s", callstack0)
+				}
 			}
 		})
 	}
