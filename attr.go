@@ -1,7 +1,7 @@
 package ctxslog
 
 import (
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 // Type alias for slog.HandlerOptions.ReplaceAttr.

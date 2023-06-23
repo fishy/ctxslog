@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"regexp"
 	"strings"
 	"testing"
-
-	"golang.org/x/exp/slog"
 
 	"go.yhsif.com/ctxslog"
 )

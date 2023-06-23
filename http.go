@@ -1,11 +1,10 @@
 package ctxslog
 
 import (
+	"log/slog"
 	"net/http"
 	"net/netip"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 // RemoteAddrIP returns the ip parsed from r.RemoteAddr.

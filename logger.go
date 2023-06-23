@@ -2,9 +2,8 @@ package ctxslog
 
 import (
 	"io"
+	"log/slog"
 	"os"
-
-	"golang.org/x/exp/slog"
 )
 
 type options struct {

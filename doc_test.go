@@ -2,10 +2,10 @@ package ctxslog_test
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"go.yhsif.com/ctxslog"
-	"golang.org/x/exp/slog"
 )
 
 func EndpointHandler(ctx context.Context, traceID string) {

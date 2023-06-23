@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"runtime"
-
-	"golang.org/x/exp/slog"
 )
 
 type logKeyType struct{}
