@@ -19,21 +19,51 @@ func TestContextHandler(t *testing.T) {
 	})
 
 	var sb strings.Builder
-	ctxslog.New(ctxslog.WithWriter(&sb))
+	ctxslog.New(
+		ctxslog.WithWriter(&sb),
+		ctxslog.WithLevel(slog.LevelInfo),
+	)
 	ctx := ctxslog.Attach(context.Background(), slog.String("foo", "bar"))
-	slog.InfoCtx(ctx, "test")
-	line := sb.String()
-	for _, s := range []string{
-		`"msg":"test"`,
-		`"foo":"bar"`,
-	} {
-		if !strings.Contains(line, s) {
-			t.Errorf("%s does not have %s", line, s)
+
+	t.Run("normal", func(t *testing.T) {
+		sb.Reset()
+		slog.InfoCtx(ctx, "test")
+		line := sb.String()
+		for _, s := range []string{
+			`"msg":"test"`,
+			`"foo":"bar"`,
+		} {
+			if !strings.Contains(line, s) {
+				t.Errorf("%s does not have %s", line, s)
+			}
 		}
-	}
+	})
+
+	t.Run("ctx-level-pos", func(t *testing.T) {
+		ctx := ctxslog.AttachLogLevel(ctx, slog.LevelDebug)
+		sb.Reset()
+		slog.DebugCtx(ctx, "test")
+		if line := strings.TrimSpace(sb.String()); line == "" {
+			t.Error("Did not log at debug level with debug ctx")
+		}
+	})
+
+	t.Run("ctx-level-neg", func(t *testing.T) {
+		ctx := ctxslog.AttachLogLevel(ctx, slog.LevelError)
+		sb.Reset()
+		slog.InfoCtx(ctx, "test")
+		if line := strings.TrimSpace(sb.String()); line != "" {
+			t.Errorf("Should not log at info with error level ctx, got %q", line)
+		}
+	})
 }
 
 func TestJSONCallstackHandler(t *testing.T) {
+	backup := slog.Default()
+	t.Cleanup(func() {
+		slog.SetDefault(backup)
+	})
+
 	const min = slog.LevelInfo + 1
 	var buf bytes.Buffer
 	logger := ctxslog.New(
@@ -75,9 +105,45 @@ func TestJSONCallstackHandler(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("ctx-pos", func(t *testing.T) {
+		ctx := ctxslog.AttachCallstackLevel(context.Background(), ctxslog.MinLevel)
+		buf.Reset()
+		logger.Log(ctx, slog.LevelDebug, "test")
+		t.Log(buf.String())
+		var line lineJSON
+		if err := json.Unmarshal(buf.Bytes(), &line); err != nil {
+			t.Fatal(err)
+		}
+		if len(line.Callstack) == 0 {
+			t.Fatal("No callstack in log")
+		}
+		if line.Callstack[0] != line.Source {
+			t.Errorf("line.Callstack[0]=%#v != line.Source=%#v", line.Callstack[0], line.Source)
+		}
+	})
+
+	t.Run("ctx-neg", func(t *testing.T) {
+		ctx := ctxslog.AttachCallstackLevel(context.Background(), ctxslog.MaxLevel)
+		buf.Reset()
+		logger.Log(ctx, slog.LevelError, "test")
+		t.Log(buf.String())
+		var line lineJSON
+		if err := json.Unmarshal(buf.Bytes(), &line); err != nil {
+			t.Fatal(err)
+		}
+		if len(line.Callstack) > 0 {
+			t.Errorf("Don't expect callstack, got %#v", line.Callstack)
+		}
+	})
 }
 
 func TestTextCallstackHandler(t *testing.T) {
+	backup := slog.Default()
+	t.Cleanup(func() {
+		slog.SetDefault(backup)
+	})
+
 	const min = slog.LevelInfo + 1
 
 	// Example:

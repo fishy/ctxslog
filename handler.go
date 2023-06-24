@@ -5,12 +5,31 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"runtime"
+)
+
+// Minimal and maximal possible log levels.
+//
+// You can use MinLevel as the log level or callstack level in context/logger to
+// include all logs, or use MaxLevel to exclude all logs (except logs logged
+// explicitly at MaxLevel).
+const (
+	MinLevel = slog.Level(math.MinInt)
+	MaxLevel = slog.Level(math.MaxInt)
 )
 
 type logKeyType struct{}
 
 var logKey logKeyType
+
+type logLevelType struct{}
+
+var logLevelKey logLevelType
+
+type callstackLevelType struct{}
+
+var callstackLevelKey callstackLevelType
 
 // Attaches logger args into context.
 func Attach(ctx context.Context, args ...any) context.Context {
@@ -19,6 +38,18 @@ func Attach(ctx context.Context, args ...any) context.Context {
 		logger = l
 	}
 	return context.WithValue(ctx, logKey, logger.With(args...))
+}
+
+// AttachLogLevel attaches min log level to the context,
+// overriding the global one set on the logger.
+func AttachLogLevel(ctx context.Context, level slog.Leveler) context.Context {
+	return context.WithValue(ctx, logLevelKey, level)
+}
+
+// AttachCallstackLevel attaches min callstack level to the context,
+// overriding the global one set on the logger.
+func AttachCallstackLevel(ctx context.Context, level slog.Leveler) context.Context {
+	return context.WithValue(ctx, callstackLevelKey, level)
 }
 
 type ctxHandler struct {
@@ -35,6 +66,9 @@ func (ch ctxHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (ch ctxHandler) Enabled(ctx context.Context, l slog.Level) bool {
+	if level, _ := ctx.Value(logLevelKey).(slog.Leveler); level != nil {
+		return l >= level.Level()
+	}
 	return ch.h.Enabled(ctx, l)
 }
 
@@ -82,7 +116,11 @@ func (ch *callstackHandler) WithGroup(name string) slog.Handler {
 }
 
 func (ch *callstackHandler) Handle(ctx context.Context, r slog.Record) error {
-	if r.Level >= ch.level.Level() && r.PC != 0 {
+	level, _ := ctx.Value(callstackLevelKey).(slog.Leveler)
+	if level == nil {
+		level = ch.level
+	}
+	if r.Level >= level.Level() && r.PC != 0 {
 		var pcs []uintptr
 		max := 20
 		for {

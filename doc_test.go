@@ -3,6 +3,7 @@ package ctxslog_test
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"go.yhsif.com/ctxslog"
@@ -13,6 +14,25 @@ func EndpointHandler(ctx context.Context, traceID string) {
 	ctx = ctxslog.Attach(ctx, "trace", traceID)
 	// Now slog's global log functions with ctx will also have trace info
 	slog.ErrorCtx(ctx, "Not implemented")
+
+	thirdPartyLibCall := func(ctx context.Context) {
+		// Some third party library that uses slog and spams logs a lot.
+		slog.ErrorCtx(ctx, "not really an error")
+	}
+	thirdPartyLibCall(
+		ctxslog.AttachLogLevel(ctx, ctxslog.MaxLevel), // now even if it logs at error level it won't shown
+	)
+}
+
+func HttpHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := ctxslog.Attach(
+		r.Context(),
+		// Add httpRequest group to every log within this context
+		slog.Group("httpRequest", ctxslog.HTTPRequest(r, ctxslog.RemoteAddrIP)),
+	)
+	// Enable callstack even at debug level for this context
+	ctx = ctxslog.AttachCallstackLevel(ctx, slog.LevelDebug)
+	slog.DebugCtx(ctx, "foo") // this log will contain httpRequest group and callstack.
 }
 
 func Example() {

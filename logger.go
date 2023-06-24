@@ -70,10 +70,11 @@ func WithReplaceAttr(f ReplaceAttrFunc) Option {
 
 // WithCallstack adds callstack at min level.
 //
-// Set it to nil to disable callstack at all levels.
-// To add callstack at all levels, use slog.Level(math.MinInt) instead.
+// Set it to MaxLevel to disable callstack at all levels (except logs logged
+// explicitly at MaxLevel).
+// To add callstack at all levels, use MinLevel.
 //
-// Default: nil.
+// Default: MaxLevel.
 func WithCallstack(min slog.Leveler) Option {
 	return func(o *options) {
 		o.callstack = min
@@ -96,8 +97,9 @@ func WithGlobalKVs(kv ...any) Option {
 // logger).
 func New(opts ...Option) *slog.Logger {
 	opt := options{
-		w:    os.Stderr,
-		json: true,
+		w:         os.Stderr,
+		json:      true,
+		callstack: MaxLevel,
 	}
 	for _, o := range opts {
 		o(&opt)
@@ -117,10 +119,7 @@ func New(opts ...Option) *slog.Logger {
 			ReplaceAttr: opt.replaceAttr,
 		})
 	}
-	if opt.callstack != nil {
-		handler = CallstackHandler(handler, opt.callstack)
-	}
-	handler = ContextHandler(handler)
+	handler = ContextHandler(CallstackHandler(handler, opt.callstack))
 
 	logger := slog.New(handler).With(opt.kvs...)
 	slog.SetDefault(logger)
