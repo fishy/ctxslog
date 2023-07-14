@@ -25,11 +25,11 @@ func EndpointHandler(ctx context.Context, traceID string) {
 	// Inside an endpoint handler, attach trace id for all logs in this context
 	ctx = ctxslog.Attach(ctx, "trace", traceID)
 	// Now slog's global log functions with ctx will also have trace info
-	slog.ErrorCtx(ctx, "Not implemented")
+	slog.ErrorContex(ctx, "Not implemented")
 
 	thirdPartyLibCall := func(ctx context.Context) {
 		// Some third party library that uses slog and spams logs a lot.
-		slog.ErrorCtx(ctx, "not really an error")
+		slog.ErrorContext(ctx, "not really an error")
 	}
 	thirdPartyLibCall(
 		ctxslog.AttachLogLevel(ctx, ctxslog.MaxLevel), // now even if it logs at error level it won't shown
@@ -44,7 +44,7 @@ func HttpHandler(w http.ResponseWriter, r *http.Request) {
 	)
 	// Enable callstack even at debug level for this context
 	ctx = ctxslog.AttachCallstackLevel(ctx, slog.LevelDebug)
-	slog.DebugCtx(ctx, "foo") // this log will contain httpRequest group and callstack.
+	slog.DebugContext(ctx, "foo") // this log will contain httpRequest group and callstack.
 }
 
 func main() {

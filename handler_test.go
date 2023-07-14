@@ -27,7 +27,7 @@ func TestContextHandler(t *testing.T) {
 
 	t.Run("normal", func(t *testing.T) {
 		sb.Reset()
-		slog.InfoCtx(ctx, "test")
+		slog.InfoContext(ctx, "test")
 		line := sb.String()
 		for _, s := range []string{
 			`"msg":"test"`,
@@ -42,7 +42,7 @@ func TestContextHandler(t *testing.T) {
 	t.Run("ctx-level-pos", func(t *testing.T) {
 		ctx := ctxslog.AttachLogLevel(ctx, slog.LevelDebug)
 		sb.Reset()
-		slog.DebugCtx(ctx, "test")
+		slog.DebugContext(ctx, "test")
 		if line := strings.TrimSpace(sb.String()); line == "" {
 			t.Error("Did not log at debug level with debug ctx")
 		}
@@ -51,7 +51,7 @@ func TestContextHandler(t *testing.T) {
 	t.Run("ctx-level-neg", func(t *testing.T) {
 		ctx := ctxslog.AttachLogLevel(ctx, slog.LevelError)
 		sb.Reset()
-		slog.InfoCtx(ctx, "test")
+		slog.InfoContext(ctx, "test")
 		if line := strings.TrimSpace(sb.String()); line != "" {
 			t.Errorf("Should not log at info with error level ctx, got %q", line)
 		}

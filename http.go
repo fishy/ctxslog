@@ -11,7 +11,7 @@ import (
 func RemoteAddrIP(r *http.Request) netip.Addr {
 	parsed, err := netip.ParseAddrPort(r.RemoteAddr)
 	if err != nil {
-		slog.DebugCtx(
+		slog.DebugContext(
 			r.Context(),
 			"ctxslog.RemoteAddrIP: Cannot parse RemoteAddr",
 			"err", err,
@@ -33,7 +33,7 @@ func GCPRealIP(r *http.Request) netip.Addr {
 		ip := strings.TrimSpace(split[i])
 		addr, err := netip.ParseAddr(ip)
 		if err != nil {
-			slog.DebugCtx(
+			slog.DebugContext(
 				r.Context(),
 				"ctxslog.GCPRealIP: Wrong forwarded ip",
 				"err", err,
