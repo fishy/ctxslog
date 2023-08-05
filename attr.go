@@ -2,6 +2,7 @@ package ctxslog
 
 import (
 	"log/slog"
+	"strconv"
 )
 
 // Type alias for slog.HandlerOptions.ReplaceAttr.
@@ -38,6 +39,21 @@ func GCPKeys(groups []string, a slog.Attr) slog.Attr {
 func StringDuration(groups []string, a slog.Attr) slog.Attr {
 	if a.Value.Kind() == slog.KindDuration {
 		a.Value = slog.StringValue(a.Value.Duration().String())
+	}
+	return a
+}
+
+// StringInt is a ReplaceAttrFunc that renders int64 and uint64 values as
+// strings.
+//
+// It's useful in cases that your log ingester parses all number values as
+// float64 and cause loss of precision.
+func StringInt(groups []string, a slog.Attr) slog.Attr {
+	switch a.Value.Kind() {
+	case slog.KindInt64:
+		a.Value = slog.StringValue(strconv.FormatInt(a.Value.Int64(), 10))
+	case slog.KindUint64:
+		a.Value = slog.StringValue(strconv.FormatUint(a.Value.Uint64(), 10))
 	}
 	return a
 }
