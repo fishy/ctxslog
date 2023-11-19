@@ -40,7 +40,7 @@ func WithText(o *options) {
 	o.json = false
 }
 
-// WithLevel sets the minimal log level.
+// WithLevel sets the minimal log level (inclusive).
 //
 // Default: slog.InfoLevel.
 func WithLevel(l slog.Leveler) Option {
@@ -68,7 +68,7 @@ func WithReplaceAttr(f ReplaceAttrFunc) Option {
 	}
 }
 
-// WithCallstack adds callstack at min level.
+// WithCallstack adds callstack at min level (inclusive).
 //
 // Set it to MaxLevel to disable callstack at all levels (except logs logged
 // explicitly at MaxLevel).

@@ -40,13 +40,13 @@ func Attach(ctx context.Context, args ...any) context.Context {
 	return context.WithValue(ctx, logKey, logger.With(args...))
 }
 
-// AttachLogLevel attaches min log level to the context,
+// AttachLogLevel attaches min log level (inclusive) to the context,
 // overriding the global one set on the logger.
 func AttachLogLevel(ctx context.Context, level slog.Leveler) context.Context {
 	return context.WithValue(ctx, logLevelKey, level)
 }
 
-// AttachCallstackLevel attaches min callstack level to the context,
+// AttachCallstackLevel attaches min callstack level (inclusive) to the context,
 // overriding the global one set on the logger.
 func AttachCallstackLevel(ctx context.Context, level slog.Leveler) context.Context {
 	return context.WithValue(ctx, callstackLevelKey, level)
@@ -80,7 +80,8 @@ func (ch ctxHandler) WithGroup(name string) slog.Handler {
 	return &ctxHandler{h: ch.h.WithGroup(name)}
 }
 
-// ContextHandler wraps handler to handle contexts from Attach.
+// ContextHandler wraps handler to handle contexts from Attach and
+// AttachLogLevel.
 func ContextHandler(h slog.Handler) slog.Handler {
 	if _, ok := h.(*ctxHandler); ok {
 		// avoid double wrapping
@@ -176,7 +177,11 @@ func callstack(pcs []uintptr) []*wrapSource {
 	return stack
 }
 
-// CallstackHandler wraps handler to print out full callstack at minimal level.
+// CallstackHandler wraps handler to print out full callstack at minimal level
+// (inclusive).
+//
+// If h is already a CallstackHandler,
+// its configured min level will be modified instead.
 func CallstackHandler(h slog.Handler, min slog.Leveler) slog.Handler {
 	if ch, ok := h.(*callstackHandler); ok {
 		// avoid double wrapping

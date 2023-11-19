@@ -10,13 +10,11 @@ import (
 	"testing"
 
 	"go.yhsif.com/ctxslog"
+	"go.yhsif.com/ctxslog/slogtest"
 )
 
 func TestContextHandler(t *testing.T) {
-	backup := slog.Default()
-	t.Cleanup(func() {
-		slog.SetDefault(backup)
-	})
+	slogtest.BackupGlobalLogger(t)
 
 	var sb strings.Builder
 	ctxslog.New(
@@ -59,10 +57,7 @@ func TestContextHandler(t *testing.T) {
 }
 
 func TestJSONCallstackHandler(t *testing.T) {
-	backup := slog.Default()
-	t.Cleanup(func() {
-		slog.SetDefault(backup)
-	})
+	slogtest.BackupGlobalLogger(t)
 
 	const min = slog.LevelInfo + 1
 	var buf bytes.Buffer
@@ -139,10 +134,7 @@ func TestJSONCallstackHandler(t *testing.T) {
 }
 
 func TestTextCallstackHandler(t *testing.T) {
-	backup := slog.Default()
-	t.Cleanup(func() {
-		slog.SetDefault(backup)
-	})
+	slogtest.BackupGlobalLogger(t)
 
 	const min = slog.LevelInfo + 1
 
