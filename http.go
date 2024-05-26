@@ -28,6 +28,9 @@ func RemoteAddrIP(r *http.Request) netip.Addr {
 // fallback to RemoteAddrIP if none found.
 func GCPRealIP(r *http.Request) netip.Addr {
 	xForwardedFor := r.Header.Get("x-forwarded-for")
+	if xForwardedFor == "" {
+		return RemoteAddrIP(r)
+	}
 	split := strings.Split(xForwardedFor, ",")
 	for i := len(split) - 1; i >= 0; i-- {
 		ip := strings.TrimSpace(split[i])
