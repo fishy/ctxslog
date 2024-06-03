@@ -49,7 +49,7 @@ func HttpHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	// Sets the global slog logger
-	ctxslog.New(
+	slog.SetDefault(ctxslog.New(
 		ctxslog.WithWriter(os.Stderr),                              // This is the default and can be omitted
 		ctxslog.WithJSON,                                           // This is the default, use ctxslog.WithText instead if you want non-json logs
 		ctxslog.WithAddSource(true),                                // Add source info
@@ -60,7 +60,7 @@ func main() {
 			ctxslog.GCPKeys,        // Use Google Cloud Structured logging friendly log keys
 			ctxslog.StringDuration, // Log time durations as strings
 		)),
-	)
+	))
 	// Now you can just use slog's global log functions
 	slog.Info("Hello, world!", "key", "value")
 }

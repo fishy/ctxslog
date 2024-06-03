@@ -17,10 +17,10 @@ func TestContextHandler(t *testing.T) {
 	slogtest.BackupGlobalLogger(t)
 
 	var sb strings.Builder
-	ctxslog.New(
+	slog.SetDefault(ctxslog.New(
 		ctxslog.WithWriter(&sb),
 		ctxslog.WithLevel(slog.LevelInfo),
-	)
+	))
 	ctx := ctxslog.Attach(context.Background(), slog.String("foo", "bar"))
 
 	t.Run("normal", func(t *testing.T) {
@@ -57,8 +57,6 @@ func TestContextHandler(t *testing.T) {
 }
 
 func TestJSONCallstackHandler(t *testing.T) {
-	slogtest.BackupGlobalLogger(t)
-
 	const min = slog.LevelInfo + 1
 	var buf bytes.Buffer
 	logger := ctxslog.New(
@@ -134,8 +132,6 @@ func TestJSONCallstackHandler(t *testing.T) {
 }
 
 func TestTextCallstackHandler(t *testing.T) {
-	slogtest.BackupGlobalLogger(t)
-
 	const min = slog.LevelInfo + 1
 
 	// Example:

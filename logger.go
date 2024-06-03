@@ -90,11 +90,9 @@ func WithGlobalKVs(kv ...any) Option {
 
 // New creates a *slog.Logger that can handle contexts.
 //
-// It also calls slog.SetDefault before returning.
+// You usually want to call slog.SetDefault with the Logger returned, like:
 //
-// Note that importing this package also has side-effect of calling New with all
-// default options (setting global, default logger for slog to be context aware
-// logger).
+//	slog.SetDefault(ctxslog.New(...))
 func New(opts ...Option) *slog.Logger {
 	opt := options{
 		w:         os.Stderr,
@@ -121,11 +119,5 @@ func New(opts ...Option) *slog.Logger {
 	}
 	handler = ContextHandler(CallstackHandler(handler, opt.callstack))
 
-	logger := slog.New(handler).With(opt.kvs...)
-	slog.SetDefault(logger)
-	return logger
-}
-
-func init() {
-	New()
+	return slog.New(handler).With(opt.kvs...)
 }

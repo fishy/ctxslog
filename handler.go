@@ -32,6 +32,9 @@ type callstackLevelType struct{}
 var callstackLevelKey callstackLevelType
 
 // Attaches logger args into context.
+//
+// NOTE: This does in most cases require that you already called slog.SetDefault
+// on a logger retruend by New.
 func Attach(ctx context.Context, args ...any) context.Context {
 	logger := slog.Default()
 	if l, ok := ctx.Value(logKey).(*slog.Logger); ok {
